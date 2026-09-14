@@ -3,8 +3,8 @@
 **English** | [Русский](./README.ru.md)
 
 [![npm](https://img.shields.io/npm/v/mcp-google-apps-script)](https://www.npmjs.com/package/mcp-google-apps-script)
-[![CI](https://github.com/A1-x-Tech/mcp-google-apps-script/actions/workflows/ci.yml/badge.svg)](https://github.com/A1-x-Tech/mcp-google-apps-script/actions/workflows/ci.yml)
 [![Glama](https://glama.ai/mcp/servers/A1-x-Tech/mcp-google-apps-script/badges/score.svg)](https://glama.ai/mcp/servers/A1-x-Tech/mcp-google-apps-script)
+[![CI](https://github.com/A1-x-Tech/mcp-google-apps-script/actions/workflows/ci.yml/badge.svg)](https://github.com/A1-x-Tech/mcp-google-apps-script/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
 **A1 Google Apps Script MCP** lets an AI app write and operate Google Apps Script in plain language. Create a script project, read and edit its code, snapshot versions, manage deployments, run functions and read the execution history.
