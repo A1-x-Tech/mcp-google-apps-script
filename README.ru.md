@@ -11,7 +11,8 @@
 
 Сервер работает с Google Apps Script API через ваш Google-аккаунт. Он отличает редактируемый код HEAD от неизменяемых версий и явно показывает ограничения Apps Script API, а не создаёт впечатление, что через скрипты можно сделать всё.
 
-- **13 инструментов.** Создание standalone- и привязанных проектов, чтение и обновление файлов кода, фиксация неизменяемых версий, управление деплоями, запуск функций, история выполнений и метрики.
+- **19 инструментов.** Создание standalone- и привязанных проектов, чтение и обновление файлов кода, фиксация неизменяемых версий, управление деплоями, запуск функций, история выполнений и метрики.
+- **Подключение из диалога.** Скажите «подключи Google Apps Script»: сервер проведёт через создание OAuth-клиента, поймает редирект Google на `127.0.0.1` с PKCE и сам сохранит токены — без конфигов и перезапуска.
 - **Версии неизменяемы.** Версия — это снимок HEAD, который нельзя ни изменить, ни удалить; деплои указывают на версии, поэтому выкатка и откат не меняют URL.
 - **Манифест всегда выживает.** Режим merge сохраняет манифест `appsscript` и все файлы, которые вы не упомянули; режим replace отклоняет набор файлов без манифеста ещё до обращения к сети.
 - **Храните scriptId.** API не умеет ни перечислять проекты, ни удалять их — `scriptId` из ответа `create_project` остаётся единственной ссылкой на проект.
@@ -53,10 +54,10 @@
 
 ## Быстрый старт
 
-Нужны Node.js 20+, Google-аккаунт и OAuth-данные из проекта Google Cloud с включённым Google Apps Script API.
+Нужны Node.js 20+ и Google-аккаунт. Учётные данные при установке не нужны: сервер подключается прямо в диалоге.
 
-1. [Подготовьте Google OAuth-доступ](#как-получить-доступ).
-2. Добавьте сервер в AI-приложение.
+1. Добавьте сервер в AI-приложение.
+2. Скажите «подключи Google Apps Script» — ассистент проведёт [создание OAuth-клиента и выдачу доступа](#как-получить-доступ), не трогая конфиги.
 3. Отправьте запрос, который только читает данные.
 
 <details open>
@@ -70,9 +71,6 @@
 
 ```bash
 codex mcp add google-apps-script \
-  --env GOOGLE_APPS_SCRIPT_CLIENT_ID=your_client_id \
-  --env GOOGLE_APPS_SCRIPT_CLIENT_SECRET=your_client_secret \
-  --env GOOGLE_APPS_SCRIPT_REFRESH_TOKEN=your_refresh_token \
   -- npx -y mcp-google-apps-script@latest
 ```
 
@@ -91,9 +89,6 @@ codex mcp list
 
 ```bash
 claude mcp add \
-  --env GOOGLE_APPS_SCRIPT_CLIENT_ID=your_client_id \
-  --env GOOGLE_APPS_SCRIPT_CLIENT_SECRET=your_client_secret \
-  --env GOOGLE_APPS_SCRIPT_REFRESH_TOKEN=your_refresh_token \
   --transport stdio --scope user google-apps-script \
   -- npx -y mcp-google-apps-script@latest
 ```
@@ -120,12 +115,7 @@ claude mcp list
   "mcpServers": {
     "google-apps-script": {
       "command": "npx",
-      "args": ["-y", "mcp-google-apps-script@latest"],
-      "env": {
-        "GOOGLE_APPS_SCRIPT_CLIENT_ID": "your_client_id",
-        "GOOGLE_APPS_SCRIPT_CLIENT_SECRET": "your_client_secret",
-        "GOOGLE_APPS_SCRIPT_REFRESH_TOKEN": "your_refresh_token"
-      }
+      "args": ["-y", "mcp-google-apps-script@latest"]
     }
   }
 }
@@ -150,12 +140,7 @@ claude mcp list
     "google-apps-script": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "mcp-google-apps-script@latest"],
-      "env": {
-        "GOOGLE_APPS_SCRIPT_CLIENT_ID": "your_client_id",
-        "GOOGLE_APPS_SCRIPT_CLIENT_SECRET": "your_client_secret",
-        "GOOGLE_APPS_SCRIPT_REFRESH_TOKEN": "your_refresh_token"
-      }
+      "args": ["-y", "mcp-google-apps-script@latest"]
     }
   }
 }
@@ -178,19 +163,9 @@ claude mcp list
     "google-apps-script": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "mcp-google-apps-script@latest"],
-      "env": {
-        "GOOGLE_APPS_SCRIPT_CLIENT_ID": "${input:apps_script_client_id}",
-        "GOOGLE_APPS_SCRIPT_CLIENT_SECRET": "${input:apps_script_client_secret}",
-        "GOOGLE_APPS_SCRIPT_REFRESH_TOKEN": "${input:apps_script_refresh_token}"
-      }
+      "args": ["-y", "mcp-google-apps-script@latest"]
     }
-  },
-  "inputs": [
-    { "type": "promptString", "id": "apps_script_client_id", "description": "Google OAuth client ID" },
-    { "type": "promptString", "id": "apps_script_client_secret", "description": "Google OAuth client secret", "password": true },
-    { "type": "promptString", "id": "apps_script_refresh_token", "description": "Google OAuth refresh token", "password": true }
-  ]
+  }
 }
 ```
 
@@ -246,7 +221,20 @@ claude mcp list
 
 ## Как получить доступ
 
-Google Apps Script API требует OAuth 2.0: одного API-ключа недостаточно.
+Google Apps Script требует OAuth 2.0: одного API-ключа недостаточно. Путей два, и первый не требует править конфигурационные файлы.
+
+### Подключение из диалога (рекомендуемый путь)
+
+Скажите «подключи Google Apps Script», и ассистент пройдёт флоу вместе с вами:
+
+1. `setup_instructions` выдаёт чек-лист: создать или выбрать проект Google Cloud, включить **Apps Script API**, настроить consent screen и создать OAuth-клиент типа **Desktop app**.
+2. Скачайте JSON этого клиента («Download JSON») и передайте ассистенту **путь** к файлу — `set_client` сохранит его с правами только для владельца. Секрет через переписку не проходит.
+3. `start_login` возвращает ссылку на согласие Google. Откройте её **на этой же машине** и подтвердите доступ: код возвращается на одноразовый слушатель `127.0.0.1` (PKCE), а не в чат.
+4. `finish_login` меняет код на токены и кладёт их в `~/.config/mcp-google-apps-script/credentials.json` (права 0600) и проверяет их реальным вызовом Apps Script API — так невключённый API ловится сразу.
+
+Токены перечитываются на каждый вызов, поэтому подключение действует немедленно — перезапускать AI-приложение не нужно. `auth_status` показывает состояние, `logout` отзывает токен и удаляет его.
+
+### Переменные окружения (CI и автоматические установки)
 
 1. Создайте или выберите проект Google Cloud и включите **Google Apps Script API**.
 2. Включите переключатель на уровне аккаунта на странице [script.google.com/home/usersettings](https://script.google.com/home/usersettings) — без него каждый вызов завершается ошибкой `403`.
@@ -269,12 +257,15 @@ Refresh token OAuth-приложения в режиме Testing может ис
 
 ## Конфигурация
 
+Все переменные необязательные — без единой из них сервер подключается [из диалога](#подключение-из-диалога-рекомендуемый-путь).
+
 | Переменная | Обязательна | Описание |
 |---|---|---|
-| `GOOGLE_APPS_SCRIPT_CLIENT_ID` | Да* | OAuth client ID. |
-| `GOOGLE_APPS_SCRIPT_CLIENT_SECRET` | Да* | OAuth client secret. |
-| `GOOGLE_APPS_SCRIPT_REFRESH_TOKEN` | Да* | OAuth refresh token. |
-| `GOOGLE_APPS_SCRIPT_ACCESS_TOKEN` | Да* | Короткоживущая альтернатива OAuth-тройке. |
+| `GOOGLE_APPS_SCRIPT_CLIENT_ID` | Нет* | OAuth client ID. |
+| `GOOGLE_APPS_SCRIPT_CLIENT_SECRET` | Нет* | OAuth client secret. |
+| `GOOGLE_APPS_SCRIPT_REFRESH_TOKEN` | Нет* | OAuth refresh token. |
+| `GOOGLE_APPS_SCRIPT_ACCESS_TOKEN` | Нет* | Короткоживущая альтернатива OAuth-тройке. |
+| `GOOGLE_APPS_SCRIPT_OAUTH_PORT` | Нет | Фиксированный порт loopback-слушателя для входа из диалога; нужен при пробросе портов по SSH. |
 | `GOOGLE_APPS_SCRIPT_API_BASE` | Нет | Переопределяет базовый URL Google Apps Script API. |
 | `GOOGLE_APPS_SCRIPT_TIMEOUT_MS` | Нет | Тайм-аут одного запроса; по умолчанию `60000` мс. |
 | `GOOGLE_APPS_SCRIPT_MAX_RETRIES` | Нет | Повторы временных ошибок; по умолчанию `3`. |

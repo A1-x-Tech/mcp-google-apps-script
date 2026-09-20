@@ -11,7 +11,8 @@
 
 It uses the Google Apps Script API with your Google account. It distinguishes the editable HEAD code from immutable versions and makes the limits of the Apps Script API explicit instead of implying that every scripting task is possible.
 
-- **13 tools.** Create standalone and bound projects, read and update code files, snapshot immutable versions, manage deployments, run functions, and inspect execution history and metrics.
+- **19 tools.** Create standalone and bound projects, read and update code files, snapshot immutable versions, manage deployments, run functions, and inspect execution history and metrics.
+- **Connects from the conversation.** Say "connect Google Apps Script": the server walks you through the OAuth client, catches Google's redirect on `127.0.0.1` with PKCE and keeps the tokens itself — no config files, no restart.
 - **Versions are immutable.** A version snapshots HEAD and can never be edited or deleted; deployments point at versions, so you ship and roll back without changing a URL.
 - **The manifest always survives.** Merge mode keeps the `appsscript` manifest and every file you did not mention; replace mode refuses a file set without the manifest before any network traffic.
 - **Keep your scriptId.** The API cannot list projects and cannot delete them — the `scriptId` returned by `create_project` is the only handle.
@@ -53,10 +54,10 @@ Start with a read-only question:
 
 ## Quick start
 
-You need Node.js 20+, a Google account and OAuth credentials from a Google Cloud project with the Google Apps Script API enabled.
+You need Node.js 20+ and a Google account. Credentials are not required at install time — the server connects from the conversation.
 
-1. [Prepare Google OAuth access](#getting-access).
-2. Add the server to your AI app.
+1. Add the server to your AI app.
+2. Say "connect Google Apps Script": the assistant walks you through [creating the OAuth client and approving access](#getting-access) without editing config files.
 3. Ask the read-only question above.
 
 <details open>
@@ -70,9 +71,6 @@ You need Node.js 20+, a Google account and OAuth credentials from a Google Cloud
 
 ```bash
 codex mcp add google-apps-script \
-  --env GOOGLE_APPS_SCRIPT_CLIENT_ID=your_client_id \
-  --env GOOGLE_APPS_SCRIPT_CLIENT_SECRET=your_client_secret \
-  --env GOOGLE_APPS_SCRIPT_REFRESH_TOKEN=your_refresh_token \
   -- npx -y mcp-google-apps-script@latest
 ```
 
@@ -91,9 +89,6 @@ codex mcp list
 
 ```bash
 claude mcp add \
-  --env GOOGLE_APPS_SCRIPT_CLIENT_ID=your_client_id \
-  --env GOOGLE_APPS_SCRIPT_CLIENT_SECRET=your_client_secret \
-  --env GOOGLE_APPS_SCRIPT_REFRESH_TOKEN=your_refresh_token \
   --transport stdio --scope user google-apps-script \
   -- npx -y mcp-google-apps-script@latest
 ```
@@ -120,12 +115,7 @@ This repository currently publishes an npm stdio package and does not contain a 
   "mcpServers": {
     "google-apps-script": {
       "command": "npx",
-      "args": ["-y", "mcp-google-apps-script@latest"],
-      "env": {
-        "GOOGLE_APPS_SCRIPT_CLIENT_ID": "your_client_id",
-        "GOOGLE_APPS_SCRIPT_CLIENT_SECRET": "your_client_secret",
-        "GOOGLE_APPS_SCRIPT_REFRESH_TOKEN": "your_refresh_token"
-      }
+      "args": ["-y", "mcp-google-apps-script@latest"]
     }
   }
 }
@@ -150,12 +140,7 @@ Add this to `~/.cursor/mcp.json` on macOS/Linux or `%USERPROFILE%\.cursor\mcp.js
     "google-apps-script": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "mcp-google-apps-script@latest"],
-      "env": {
-        "GOOGLE_APPS_SCRIPT_CLIENT_ID": "your_client_id",
-        "GOOGLE_APPS_SCRIPT_CLIENT_SECRET": "your_client_secret",
-        "GOOGLE_APPS_SCRIPT_REFRESH_TOKEN": "your_refresh_token"
-      }
+      "args": ["-y", "mcp-google-apps-script@latest"]
     }
   }
 }
@@ -178,19 +163,9 @@ Run **MCP: Open User Configuration** and add:
     "google-apps-script": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "mcp-google-apps-script@latest"],
-      "env": {
-        "GOOGLE_APPS_SCRIPT_CLIENT_ID": "${input:apps_script_client_id}",
-        "GOOGLE_APPS_SCRIPT_CLIENT_SECRET": "${input:apps_script_client_secret}",
-        "GOOGLE_APPS_SCRIPT_REFRESH_TOKEN": "${input:apps_script_refresh_token}"
-      }
+      "args": ["-y", "mcp-google-apps-script@latest"]
     }
-  },
-  "inputs": [
-    { "type": "promptString", "id": "apps_script_client_id", "description": "Google OAuth client ID" },
-    { "type": "promptString", "id": "apps_script_client_secret", "description": "Google OAuth client secret", "password": true },
-    { "type": "promptString", "id": "apps_script_refresh_token", "description": "Google OAuth refresh token", "password": true }
-  ]
+  }
 }
 ```
 
@@ -246,7 +221,20 @@ The AI client controls confirmation prompts. The server marks reads, writes and 
 
 ## Getting access
 
-The Google Apps Script API requires OAuth 2.0; an API key is not enough.
+Google Apps Script requires OAuth 2.0; an API key is not enough. There are two ways in, and the first one needs no configuration files.
+
+### Connect from the chat (recommended)
+
+Say "connect Google Apps Script" and the assistant runs the flow with you:
+
+1. `setup_instructions` prints the checklist: create or select a Google Cloud project, enable **Apps Script API**, configure the consent screen and create a **Desktop app** OAuth client.
+2. Download that client's JSON ("Download JSON") and give the assistant its **path** — `set_client` stores it owner-only. The secret never goes through the conversation.
+3. `start_login` returns a Google consent link. Open it **on this machine** and approve; the code comes back to a one-shot listener on `127.0.0.1` (PKCE), never through the chat.
+4. `finish_login` exchanges the code and saves the tokens to `~/.config/mcp-google-apps-script/credentials.json` (mode 0600) and verifies them with a real Apps Script API call — so an API that is still switched off is caught right there.
+
+The tokens are re-read on every call, so the connection works immediately — no restart of the AI app. `auth_status` shows what is connected, `logout` revokes and deletes it.
+
+### Environment variables (CI, unattended installs)
 
 1. Create or select a Google Cloud project and enable **Google Apps Script API**.
 2. Turn on the per-account toggle at [script.google.com/home/usersettings](https://script.google.com/home/usersettings) — without it every call fails with `403`.
@@ -269,12 +257,15 @@ The `setup_instructions` tool returns this same checklist and works even before 
 
 ## Configuration
 
+Every variable is optional — with none of them the server connects [from the chat](#connect-from-the-chat-recommended).
+
 | Variable | Required | Description |
 |---|---|---|
-| `GOOGLE_APPS_SCRIPT_CLIENT_ID` | Yes* | OAuth client ID. |
-| `GOOGLE_APPS_SCRIPT_CLIENT_SECRET` | Yes* | OAuth client secret. |
-| `GOOGLE_APPS_SCRIPT_REFRESH_TOKEN` | Yes* | OAuth refresh token. |
-| `GOOGLE_APPS_SCRIPT_ACCESS_TOKEN` | Yes* | Short-lived alternative to the OAuth trio. |
+| `GOOGLE_APPS_SCRIPT_CLIENT_ID` | No* | OAuth client ID. |
+| `GOOGLE_APPS_SCRIPT_CLIENT_SECRET` | No* | OAuth client secret. |
+| `GOOGLE_APPS_SCRIPT_REFRESH_TOKEN` | No* | OAuth refresh token. |
+| `GOOGLE_APPS_SCRIPT_ACCESS_TOKEN` | No* | Short-lived alternative to the OAuth trio. |
+| `GOOGLE_APPS_SCRIPT_OAUTH_PORT` | No | Fixed loopback port for the in-chat login; useful over SSH port forwarding. |
 | `GOOGLE_APPS_SCRIPT_API_BASE` | No | Google Apps Script API base URL override. |
 | `GOOGLE_APPS_SCRIPT_TIMEOUT_MS` | No | Per-request timeout; default `60000` ms. |
 | `GOOGLE_APPS_SCRIPT_MAX_RETRIES` | No | Temporary-error retries; default `3`. |

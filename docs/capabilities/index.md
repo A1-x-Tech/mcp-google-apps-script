@@ -1,8 +1,17 @@
 # Google Apps Script MCP capabilities
 
-This catalog contains 13 public pages—one for every registered MCP tool in `mcp-google-apps-script`. Each page starts with the user's task, explains the result, and states whether the call changes real data.
+This catalog contains 19 public pages—one for every registered MCP tool in `mcp-google-apps-script`. Each page starts with the user's task, explains the result, and states whether the call changes real data.
 
 Use this catalog to choose a ready-made capability. Full parameter schemas and API response details remain in the [technical reference](../TOOLS.md).
+
+## Connection
+
+- [Connection status](./auth-status.md) — Reports whether Google Apps Script is connected, where the token comes from, when it expires and which account it belongs to. **Impact:** read-only.
+- [Setup instructions](./setup-instructions.md) — The setup checklist for this server: the Apps Script API toggles, the per-tool scopes and the run_function prerequisites. **Impact:** read-only.
+- [Save the OAuth client](./set-client.md) — Reads the OAuth client JSON downloaded from Google Cloud Console and stores it for every mcp-google-* server to reuse. **Impact:** changes data.
+- [Start the login](./start-login.md) — Opens a loopback + PKCE login and returns the Google consent URL for the user to approve in their browser. **Impact:** changes data.
+- [Finish the login](./finish-login.md) — Exchanges the approved consent for tokens, stores them owner-only and verifies that the connection really works. **Impact:** changes data.
+- [Disconnect](./logout.md) — Revokes the stored token at Google and deletes the local login; environment credentials are left untouched. **Impact:** destructive operation.
 
 ## Projects
 
@@ -29,7 +38,6 @@ Use this catalog to choose a ready-made capability. Full parameter schemas and A
 
 ## Setup
 
-- [Setup instructions](./setup-instructions.md) — Returns the setup checklist — enabling the API, minimal scopes, run prerequisites. **Impact:** read-only.
 
 ## Additional API methods
 
