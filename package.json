@@ -1,6 +1,6 @@
 {
   "name": "mcp-google-apps-script",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "description": "MCP server for the Google Apps Script API — create script projects, read and update code files, manage versions and deployments, run functions and inspect executions. For Claude, Cursor, Codex and other AI clients.",
   "mcpName": "io.github.A1-x-Tech/mcp-google-apps-script",
   "type": "module",
