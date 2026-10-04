@@ -1,0 +1,24 @@
+{
+  "name": "mcp-google-apps-script",
+  "displayName": "A1 Google Apps Script MCP",
+  "description": "MCP server for the Google Apps Script API — create script projects, read and update code files, manage versions and deployments, run functions and inspect executions. For Claude, Cursor, Codex and oth",
+  "author": {
+    "name": "Aleksandr Kovalko & Zinnur Temerbekov"
+  },
+  "homepage": "https://github.com/A1-x-Tech/mcp-google-apps-script#readme",
+  "repository": "https://github.com/A1-x-Tech/mcp-google-apps-script",
+  "license": "MIT",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "google",
+    "google-apps-script",
+    "apps-script",
+    "automation",
+    "scripting",
+    "claude",
+    "cursor",
+    "codex"
+  ],
+  "logo": "assets/a1-logo.svg"
+}
