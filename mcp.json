@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "google-apps-script": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-google-apps-script@latest"
+      ]
+    }
+  }
+}
